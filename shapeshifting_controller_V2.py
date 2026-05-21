@@ -1,11 +1,11 @@
 """
 Shapeshifting LAN Defence System
-Phases 2 + 3 + 4 — Complete Implementation
+Phases 2 + 3 + 4 - Complete Implementation
 
 Architecture (matches Chapter 3 design):
-    ShapeShiftingController  — Ryu app, handles all SDN communication
-    DetectionEngine          — analyses traffic features, outputs threat state
-    MutationEngine           — receives threat state, applies network mutations
+    ShapeShiftingController  - Ryu app, handles all SDN communication
+    DetectionEngine          - analyses traffic features, outputs threat state
+    MutationEngine           - receives threat state, applies network mutations
 
 Detection methods:
     i.   Shannon entropy on destination port distribution  → port scan
@@ -14,8 +14,8 @@ Detection methods:
     iv.  Repeated connection counter                       → brute force
 
 Mutation responses:
-    Port hopping      — redirects traffic away from scanned port (port scan)
-    Flow rule rewrite — installs DROP rule for offending source IP
+    Port hopping      - redirects traffic away from scanned port (port scan)
+    Flow rule rewrite - installs DROP rule for offending source IP
                         (SYN flood, brute force)
 
 Run with:
@@ -76,7 +76,7 @@ MALICIOUS  = "MALICIOUS"
 # ======================================================================
 #  DETECTION ENGINE
 #  Reads accumulated traffic counters and classifies threat state.
-#  Does not touch the network — output only.
+#  Does not touch the network - output only.
 # ======================================================================
 
 class DetectionEngine:
@@ -122,7 +122,7 @@ class DetectionEngine:
         return results
 
     # ------------------------------------------------------------------
-    #  METHOD i — Shannon entropy on destination port distribution
+    #  METHOD i - Shannon entropy on destination port distribution
     #  H = - sum( p(x) * log2(p(x)) )
     #  Low entropy  = traffic on few ports = normal
     #  High entropy = traffic spread across many ports = port scan
@@ -145,7 +145,7 @@ class DetectionEngine:
             return NORMAL, entropy
 
     # ------------------------------------------------------------------
-    #  METHOD ii — SYN/ACK ratio
+    #  METHOD ii - SYN/ACK ratio
     #  Normal TCP completes handshake: SYN count ≈ ACK count
     #  SYN flood: many SYNs, very few ACKs
     # ------------------------------------------------------------------
@@ -166,7 +166,7 @@ class DetectionEngine:
             return NORMAL, ratio
 
     # ------------------------------------------------------------------
-    #  METHOD iii — Flow velocity
+    #  METHOD iii - Flow velocity
     #  Counts new flows installed in the last detection window.
     #  Reconnaissance generates many flows quickly.
     # ------------------------------------------------------------------
@@ -179,7 +179,7 @@ class DetectionEngine:
             return NORMAL
 
     # ------------------------------------------------------------------
-    #  METHOD iv — Brute force
+    #  METHOD iv - Brute force
     #  Tracks repeated connections from same source IP to same port.
     # ------------------------------------------------------------------
     def _check_brute_force(self, connection_tracker):
@@ -232,8 +232,8 @@ class DetectionEngine:
 #  MUTATION ENGINE
 #  Receives detection results and applies OpenFlow-based mutations.
 #  Two primary mutations:
-#    i.  Port hopping    — redirects traffic away from scanned port
-#    ii. Flow rule rewrite — installs timed DROP rule for offending IP
+#    i.  Port hopping    - redirects traffic away from scanned port
+#    ii. Flow rule rewrite - installs timed DROP rule for offending IP
 # ======================================================================
 
 class MutationEngine:
@@ -261,21 +261,21 @@ class MutationEngine:
         for dpid, datapath in datapaths.items():
 
             if trigger == 'port_entropy':
-                # Port scan detected — hop the most-targeted port
+                # Port scan detected - hop the most-targeted port
                 self._port_hop(datapath, dst_port_counts)
 
             elif trigger in ('syn_ratio', 'brute_force'):
-                # SYN flood or brute force — block the top offending source IP
+                # SYN flood or brute force - block the top offending source IP
                 self._block_source(datapath, src_ip_counts,
                                    connection_tracker, trigger)
 
             elif trigger == 'flow_velocity':
-                # Reconnaissance — block top source IP
+                # Reconnaissance - block top source IP
                 self._block_source(datapath, src_ip_counts,
                                    connection_tracker, trigger)
 
     # ------------------------------------------------------------------
-    #  MUTATION i — PORT HOPPING
+    #  MUTATION i - PORT HOPPING
     #
     #  Identifies the most-scanned destination port and installs a
     #  high-priority OpenFlow rule that DROPS packets to that port.
@@ -322,7 +322,7 @@ class MutationEngine:
         self.active_mutations.append(mutation_record)
 
         self.logger.warning(
-            "[MUTATION] Port hop applied — port %d traffic blocked "
+            "[MUTATION] Port hop applied - port %d traffic blocked "
             "for %ds (rule auto-expires)",
             target_port, HOP_RULE_TIMEOUT
         )
@@ -331,7 +331,7 @@ class MutationEngine:
         )
 
     # ------------------------------------------------------------------
-    #  MUTATION ii — FLOW RULE REWRITE (SOURCE BLOCK)
+    #  MUTATION ii - FLOW RULE REWRITE (SOURCE BLOCK)
     #
     #  Identifies the top offending source IP and installs a
     #  high-priority DROP rule for all traffic from that IP.
@@ -372,7 +372,7 @@ class MutationEngine:
         self.active_mutations.append(mutation_record)
 
         self.logger.warning(
-            "[MUTATION] Source block applied — traffic from %s dropped "
+            "[MUTATION] Source block applied - traffic from %s dropped "
             "for %ds (rule auto-expires)",
             offender_ip, BLOCK_RULE_TIMEOUT
         )
@@ -404,7 +404,7 @@ class ShapeShiftingController(app_manager.RyuApp):
         self.mac_to_port = {}
         self.datapaths   = {}
 
-        # Traffic feature counters — reset after every detection cycle
+        # Traffic feature counters - reset after every detection cycle
         self.dst_port_counts    = collections.Counter()
         self.src_ip_counts      = collections.Counter()
         self.tcp_flag_counts    = collections.Counter()
@@ -437,7 +437,7 @@ class ShapeShiftingController(app_manager.RyuApp):
         self._add_flow(datapath, priority=0, match=match, actions=actions)
 
     # ------------------------------------------------------------------
-    #  PACKET-IN — switching + feature extraction
+    #  PACKET-IN - switching + feature extraction
     # ------------------------------------------------------------------
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
@@ -502,7 +502,7 @@ class ShapeShiftingController(app_manager.RyuApp):
     def flow_stats_reply_handler(self, ev):
         flows  = ev.msg.body
         active = [f for f in flows if f.priority > 0]
-        self.logger.info("[STATS] Switch %s — %d active flows",
+        self.logger.info("[STATS] Switch %s - %d active flows",
                          ev.msg.datapath.id, len(active))
         for stat in active:
             m = stat.match
@@ -548,7 +548,7 @@ class ShapeShiftingController(app_manager.RyuApp):
             if result['overall_state'] == MALICIOUS:
                 self.logger.warning(
                     "[DETECTION] *** MALICIOUS ACTIVITY DETECTED *** "
-                    "— activating mutation engine"
+                    "- activating mutation engine"
                 )
                 self.mutation_engine.respond(
                     detection_result    = result,
@@ -561,7 +561,7 @@ class ShapeShiftingController(app_manager.RyuApp):
 
             elif result['overall_state'] == SUSPICIOUS:
                 self.logger.warning(
-                    "[DETECTION] Suspicious activity — monitoring intensified"
+                    "[DETECTION] Suspicious activity - monitoring intensified"
                 )
             else:
                 self.logger.info("[DETECTION] Traffic state: NORMAL")

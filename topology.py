@@ -35,7 +35,7 @@ class ShapeShiftingTopo(Topo):
         h2  10.0.0.2   client 2
         h3  10.0.0.3   client 3
         h4  10.0.0.4   server  (runs HTTP on port 80)
-        s1  —          Open vSwitch (managed by Ryu)
+        s1  -          Open vSwitch (managed by Ryu)
     """
 
     def build(self):
@@ -78,14 +78,14 @@ if __name__ == '__main__':
     h4.cmd('python3 -m http.server 80 &')
 
     print("\n" + "=" * 50)
-    print("  SHAPESHIFTING LAN — NETWORK READY")
+    print("  SHAPESHIFTING LAN - NETWORK READY")
     print("=" * 50)
     print("  Clients:")
-    print("    h1  —  10.0.0.1")
-    print("    h2  —  10.0.0.2")
-    print("    h3  —  10.0.0.3")
+    print("    h1  -  10.0.0.1")
+    print("    h2  -  10.0.0.2")
+    print("    h3  -  10.0.0.3")
     print("  Server:")
-    print("    h4  —  10.0.0.4  (HTTP on port 80)")
+    print("    h4  -  10.0.0.4  (HTTP on port 80)")
     print("  Switch:  s1  (OpenFlow 1.3)")
     print("  Controller: Ryu (remote, port 6633)")
     print("=" * 50)
