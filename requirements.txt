@@ -1,0 +1,8 @@
+# Shapeshifting LAN — Python dependencies
+# Install with: pip install -r requirements.txt --break-system-packages
+#
+# Note: ryu and mininet are best installed via apt on Ubuntu:
+#   sudo apt install mininet python3-ryu
+#
+# Only scapy requires pip:
+# scapy
