@@ -107,6 +107,7 @@ _shared_state = {
     'packet_counts' : {'total': 0, 'tcp': 0, 'udp': 0, 'other': 0},
     'history'       : [],
     'log'           : [],
+    'pending_marker': None,   # set by /api/mark, consumed by next detection cycle
 }
 _state_lock = threading.Lock()
 
@@ -458,6 +459,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json({'history': filtered, 'window': window,
                              'count': len(filtered)})
 
+        elif self.path.startswith('/api/mark'):
+            # Stamp the next detection cycle with a test label.
+            # Usage: GET /api/mark?label=h1_h4_entropy_sus
+            label = 'unlabelled'
+            if '?label=' in self.path:
+                label = self.path.split('?label=')[1].split('&')[0]
+            with _state_lock:
+                _shared_state['pending_marker'] = label
+            msg = f"[MARKER] Test marked: {label}"
+            _log('INFO', msg)
+            self._send_json({'status': 'marked', 'label': label})
+
         elif self.path == '/api/mutations':
             with _state_lock:
                 data = {'mutations': _shared_state['mutations'][-50:]}
@@ -643,7 +656,13 @@ class ShapeShiftingController(app_manager.RyuApp):
                 connection_tracker = self.connection_tracker
             )
 
+            # Attach any pending test marker to this cycle
             with _state_lock:
+                marker = _shared_state.get('pending_marker', None)
+                _shared_state['pending_marker'] = None
+                if marker:
+                    result['test_marker'] = marker
+                    _log('INFO', f"[MARKER] Attached to cycle: {marker}")
                 _shared_state['latest_result'] = result
                 _shared_state['history'].append(result)
                 cutoff = time.time() - (7 * 24 * 3600)
