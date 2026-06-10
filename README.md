@@ -22,11 +22,13 @@ DROP rules that automatically expire, so legitimate traffic is not
 permanently affected.
 
 ## Topology
+``` topology
 h1 (10.0.0.1) ─┐
 h2 (10.0.0.2) ─┤
 s1 (OVS) ── c0 (Ryu controller)
 h3 (10.0.0.3) ─┤
 h4 (10.0.0.4) ─┘
+```
 
 ## Quick Start — Pre-built VM
 
@@ -80,6 +82,7 @@ and launch the interactive test suite:
 mininet> h1 python3 test_suite.py 10.0.0.2
 
 You will see a menu:
+``` menu
 ╔══════════════════════════════════════════════════════╗
 ║      SHAPESHIFTING LAN - INTERACTIVE TEST SUITE      ║
 ╠══════════════════════════════════════════════════════╣
@@ -89,6 +92,7 @@ You will see a menu:
 ║  5 - Flow burst SUSPICIOUS 6 - Flow burst MALICIOUS  ║
 ║  7 - Brute force SUSPICIOUS 8 - Brute force MALICIOUS║
 ╚══════════════════════════════════════════════════════╝
+```
 
 Select a test, then watch the **controller terminal** for detection 
 and mutation output. Wait up to 10 seconds between tests for the 
