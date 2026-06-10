@@ -1,6 +1,23 @@
 """
 Shapeshifting LAN Defence System
-V7 — Final version with dashboard, live log, and integrated attack runner
+V9 — True port redirection + persistent history
+
+Port hopping now implements genuine OpenFlow traffic redirection:
+    - Incoming traffic to the scanned port gets its TCP dst_port
+      rewritten to the new hop port before forwarding to the server.
+    - Return traffic from the server on the new port gets its TCP
+      src_port rewritten back to the original port before forwarding
+      to the client.
+    - The client sees a continuous service on the original port.
+    - The attacker's scan data becomes stale immediately.
+    - The server (h4) services the request on the new port, which it
+      is already listening on (topology.py starts HTTP on all hop ports).
+
+This matches the Chapter 3 description:
+    "Port hopping involved the controller installing a new OpenFlow
+    flow rule redirecting traffic destined for the original service
+    port to a newly assigned port, effectively relocating the service
+    without modifying the host operating system."
 """
 
 from ryu.base import app_manager
@@ -15,8 +32,10 @@ import time
 import math
 import random
 import json
+import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
 
 # ======================================================================
 #  THRESHOLDS
@@ -39,9 +58,44 @@ FLOW_IDLE_TIMEOUT      = 2
 API_PORT               = 8080
 MAX_LOG_LINES          = 300
 
+SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE = os.path.join(SCRIPT_DIR, 'detection_history.json')
+MAX_HISTORY_CYCLES = 1008   # 7 days at 6 cycles/hour
+
 NORMAL     = "NORMAL"
 SUSPICIOUS = "SUSPICIOUS"
 MALICIOUS  = "MALICIOUS"
+
+
+# ======================================================================
+#  PERSISTENT HISTORY
+# ======================================================================
+
+def load_history():
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    try:
+        with open(HISTORY_FILE, 'r') as f:
+            data = json.load(f)
+        cutoff = time.time() - (7 * 24 * 3600)
+        return [r for r in data if r.get('unix_ts', 0) >= cutoff]
+    except Exception:
+        return []
+
+
+def save_history(history):
+    try:
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history[-MAX_HISTORY_CYCLES:], f)
+    except Exception:
+        pass
+
+
+def filter_history(history, window):
+    seconds = {'1h': 3600, '6h': 21600, '24h': 86400, '7d': 604800}.get(window, 3600)
+    cutoff  = time.time() - seconds
+    return [r for r in history if r.get('unix_ts', 0) >= cutoff]
+
 
 # ======================================================================
 #  SHARED STATE
@@ -63,137 +117,6 @@ def _log(level, message):
         _shared_state['log'].append(line)
         if len(_shared_state['log']) > MAX_LOG_LINES:
             _shared_state['log'].pop(0)
-
-
-# ======================================================================
-#  ATTACK RUNNER
-#  Imports test functions directly from test_suite.py so they run
-#  in the same process with the same permissions and timing as the
-#  controller. This avoids subprocess permission errors and timing
-#  issues that prevented detection from triggering via the dashboard.
-# ======================================================================
-
-def run_attack(test_num, target_ip='10.0.0.4'):
-    """
-    Runs attack simulation by importing test functions from test_suite.py.
-    Falls back to inline scapy if test_suite.py is not found.
-    """
-    import sys
-    import os
-
-    label_map = {
-        '0': 'Normal baseline traffic',
-        '1': 'Entropy SUSPICIOUS — scan 20 ports',
-        '2': 'Entropy MALICIOUS — scan 100 ports',
-        '3': 'SYN flood SUSPICIOUS — 30 SYN / 5 ACK',
-        '4': 'SYN flood MALICIOUS — 100 SYN / 0 ACK',
-        '5': 'Flow velocity SUSPICIOUS — 20 connections',
-        '6': 'Flow velocity MALICIOUS — 80 connections',
-        '7': 'Brute force SUSPICIOUS — 20 SSH attempts',
-        '8': 'Brute force MALICIOUS — 80 SSH attempts',
-    }
-
-    label = label_map.get(str(test_num), 'Unknown test')
-    _log('ATTACK', f'--- Starting: {label} ---')
-    _log('ATTACK', f'    Target: {target_ip}')
-
-    try:
-        # Add FYP directory to path so test_suite can be imported
-        fyp_path = os.path.expanduser('~/FYP')
-        if fyp_path not in sys.path:
-            sys.path.insert(0, fyp_path)
-
-        # Import test_suite and patch its target_ip
-        import importlib
-        import test_suite as ts
-
-        # Override target IP in the test_suite module
-        ts.target_ip = target_ip
-
-        fn_map = {
-            '0': ts.normal_traffic,
-            '1': ts.test_entropy_suspicious,
-            '2': ts.test_entropy_malicious,
-            '3': ts.test_syn_suspicious,
-            '4': ts.test_syn_malicious,
-            '5': ts.test_flow_suspicious,
-            '6': ts.test_flow_malicious,
-            '7': ts.test_brute_suspicious,
-            '8': ts.test_brute_malicious,
-        }
-
-        fn = fn_map.get(str(test_num))
-        if fn is None:
-            _log('ATTACK', f'    Unknown test number: {test_num}')
-            return
-
-        # Redirect stdout so print() calls go to the log
-        import io
-        old_stdout = sys.stdout
-        sys.stdout = buf = io.StringIO()
-        try:
-            fn()
-        finally:
-            sys.stdout = old_stdout
-        output = buf.getvalue()
-        for line in output.strip().split('\n'):
-            if line.strip():
-                _log('ATTACK', f'    {line}')
-
-    except ImportError:
-        _log('ATTACK', '    test_suite.py not found — using inline scapy')
-        _run_inline_attack(test_num, target_ip)
-    except Exception as e:
-        _log('ATTACK', f'    Error: {e}')
-
-    _log('ATTACK', f'--- Complete: {label} ---')
-    _log('ATTACK', '    Detection cycle runs every 10s — watch for state change')
-
-
-def _run_inline_attack(test_num, target_ip):
-    """Fallback inline scapy attack if test_suite.py is not available."""
-    try:
-        from scapy.all import IP, TCP, send
-        import random as rnd
-
-        n = str(test_num)
-        if n == '0':
-            for _ in range(10):
-                send(IP(dst=target_ip)/TCP(dport=rnd.choice([80,443,22,53]),flags='S'),verbose=0)
-                time.sleep(0.3)
-            for _ in range(8):
-                send(IP(dst=target_ip)/TCP(dport=80,flags='A'),verbose=0)
-        elif n == '1':
-            for p in range(1,21):
-                send(IP(dst=target_ip)/TCP(dport=p,flags='S'),verbose=0)
-                time.sleep(0.05)
-        elif n == '2':
-            for p in range(1,101):
-                send(IP(dst=target_ip)/TCP(dport=p,flags='S'),verbose=0)
-                time.sleep(0.01)
-        elif n == '3':
-            for _ in range(30): send(IP(dst=target_ip)/TCP(dport=80,flags='S'),verbose=0)
-            for _ in range(5):  send(IP(dst=target_ip)/TCP(dport=80,flags='A'),verbose=0)
-        elif n == '4':
-            for _ in range(100): send(IP(dst=target_ip)/TCP(dport=80,flags='S'),verbose=0)
-        elif n == '5':
-            for _ in range(20):
-                send(IP(dst=target_ip)/TCP(dport=rnd.randint(1024,65535),flags='S'),verbose=0)
-                time.sleep(0.02)
-        elif n == '6':
-            for _ in range(80):
-                send(IP(dst=target_ip)/TCP(dport=rnd.randint(1024,65535),flags='S'),verbose=0)
-                time.sleep(0.005)
-        elif n == '7':
-            for _ in range(20):
-                send(IP(dst=target_ip)/TCP(dport=22,flags='S'),verbose=0)
-                time.sleep(0.1)
-        elif n == '8':
-            for _ in range(80):
-                send(IP(dst=target_ip)/TCP(dport=22,flags='S'),verbose=0)
-                time.sleep(0.01)
-    except Exception as e:
-        _log('ATTACK', f'    Inline scapy error: {e}')
 
 
 # ======================================================================
@@ -231,6 +154,7 @@ class DetectionEngine:
 
         results['trigger']   = self._identify_trigger(results)
         results['timestamp'] = time.strftime("%H:%M:%S")
+        results['unix_ts']   = time.time()
         results['top_ports'] = list(dst_port_counts.most_common(5))
         results['top_ips']   = list(src_ip_counts.most_common(5))
 
@@ -245,7 +169,7 @@ class DetectionEngine:
         for count in dst_port_counts.values():
             p = count / total
             entropy -= p * math.log2(p)
-        if entropy >= ENTROPY_MALICIOUS:   return MALICIOUS, entropy
+        if entropy >= ENTROPY_MALICIOUS:    return MALICIOUS, entropy
         elif entropy >= ENTROPY_SUSPICIOUS: return SUSPICIOUS, entropy
         return NORMAL, entropy
 
@@ -253,12 +177,12 @@ class DetectionEngine:
         syn_count = sum(c for f, c in tcp_flag_counts.items() if 'SYN' in f)
         ack_count = sum(c for f, c in tcp_flag_counts.items() if 'ACK' in f)
         ratio = float(syn_count) if ack_count == 0 else syn_count / ack_count
-        if ratio >= SYN_RATIO_MALICIOUS:   return MALICIOUS, ratio
+        if ratio >= SYN_RATIO_MALICIOUS:    return MALICIOUS, ratio
         elif ratio >= SYN_RATIO_SUSPICIOUS: return SUSPICIOUS, ratio
         return NORMAL, ratio
 
     def _check_flow_velocity(self, flow_count_window):
-        if flow_count_window >= FLOW_RATE_MALICIOUS:   return MALICIOUS, flow_count_window
+        if flow_count_window >= FLOW_RATE_MALICIOUS:    return MALICIOUS, flow_count_window
         elif flow_count_window >= FLOW_RATE_SUSPICIOUS: return SUSPICIOUS, flow_count_window
         return NORMAL, flow_count_window
 
@@ -269,7 +193,7 @@ class DetectionEngine:
         worst_count = connection_tracker[worst_pair]
         detail = {'src_ip': worst_pair[0], 'dst_port': worst_pair[1],
                   'count': worst_count}
-        if worst_count >= BRUTE_FORCE_MALICIOUS:   return MALICIOUS, detail
+        if worst_count >= BRUTE_FORCE_MALICIOUS:    return MALICIOUS, detail
         elif worst_count >= BRUTE_FORCE_SUSPICIOUS: return SUSPICIOUS, detail
         return NORMAL, detail
 
@@ -320,7 +244,8 @@ class MutationEngine:
         if state != MALICIOUS:
             return
 
-        msg = f"*** MUTATION ENGINE ACTIVATED | Trigger: {trigger} | {time.strftime('%H:%M:%S')}"
+        msg = (f"*** MUTATION ENGINE ACTIVATED | "
+               f"Trigger: {trigger} | {time.strftime('%H:%M:%S')}")
         self.logger.warning(msg)
         _log('MUTATION', msg)
 
@@ -331,38 +256,104 @@ class MutationEngine:
                 self._block_source(datapath, src_ip_counts,
                                    connection_tracker, trigger)
 
+    # ------------------------------------------------------------------
+    #  MUTATION i — TRUE PORT REDIRECTION
+    #
+    #  Installs two OpenFlow rules with hard_timeout:
+    #
+    #  Rule A (priority 10) — inbound:
+    #    Match:   eth_type=IPv4, ip_proto=TCP, tcp_dst=original_port
+    #    Action:  SET_FIELD tcp_dst=new_port, OUTPUT to server port
+    #
+    #  Rule B (priority 10) — outbound return traffic:
+    #    Match:   eth_type=IPv4, ip_proto=TCP, tcp_src=new_port
+    #    Action:  SET_FIELD tcp_src=original_port, OUTPUT to flood
+    #
+    #  Both rules expire after HOP_RULE_TIMEOUT seconds, after which
+    #  normal forwarding resumes automatically.
+    #
+    #  Effect: the client sees traffic on the original port throughout.
+    #  The attacker's scan data for the original port becomes stale.
+    #  The server continues serving from the new port transparently.
+    # ------------------------------------------------------------------
     def _port_hop(self, datapath, dst_port_counts):
         if not dst_port_counts:
             _log('MUTATION', '[MUTATION] Port hop skipped -- no port data')
             return
 
-        target_port = dst_port_counts.most_common(1)[0][0]
-        new_port    = random.choice(HOP_PORTS)
-        parser      = datapath.ofproto_parser
-        ofproto     = datapath.ofproto
+        original_port = dst_port_counts.most_common(1)[0][0]
+        new_port      = random.choice(HOP_PORTS)
+        parser        = datapath.ofproto_parser
+        ofproto       = datapath.ofproto
 
-        match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
-                                tcp_dst=target_port)
-        mod = parser.OFPFlowMod(
-            datapath=datapath, priority=10, match=match,
-            instructions=[], hard_timeout=HOP_RULE_TIMEOUT,
-            flags=ofproto.OFPFF_SEND_FLOW_REM
+        # Rule A — rewrite incoming traffic dst port
+        match_in = parser.OFPMatch(
+            eth_type=0x0800,
+            ip_proto=6,
+            tcp_dst=original_port
         )
-        datapath.send_msg(mod)
+        actions_in = [
+            parser.OFPActionSetField(tcp_dst=new_port),
+            parser.OFPActionOutput(ofproto.OFPP_NORMAL)
+        ]
+        inst_in = [parser.OFPInstructionActions(
+            ofproto.OFPIT_APPLY_ACTIONS, actions_in)]
+        mod_in = parser.OFPFlowMod(
+            datapath     = datapath,
+            priority     = 10,
+            match        = match_in,
+            instructions = inst_in,
+            hard_timeout = HOP_RULE_TIMEOUT,
+            flags        = ofproto.OFPFF_SEND_FLOW_REM
+        )
+        datapath.send_msg(mod_in)
+
+        # Rule B — rewrite outgoing return traffic src port
+        match_out = parser.OFPMatch(
+            eth_type=0x0800,
+            ip_proto=6,
+            tcp_src=new_port
+        )
+        actions_out = [
+            parser.OFPActionSetField(tcp_src=original_port),
+            parser.OFPActionOutput(ofproto.OFPP_NORMAL)
+        ]
+        inst_out = [parser.OFPInstructionActions(
+            ofproto.OFPIT_APPLY_ACTIONS, actions_out)]
+        mod_out = parser.OFPFlowMod(
+            datapath     = datapath,
+            priority     = 10,
+            match        = match_out,
+            instructions = inst_out,
+            hard_timeout = HOP_RULE_TIMEOUT,
+            flags        = ofproto.OFPFF_SEND_FLOW_REM
+        )
+        datapath.send_msg(mod_out)
 
         record = {
-            'type': 'port_hop', 'target_port': target_port,
-            'new_port': new_port, 'timeout': HOP_RULE_TIMEOUT,
-            'time': time.strftime("%H:%M:%S"), 'dpid': datapath.id
+            'type'         : 'port_hop',
+            'original_port': original_port,
+            'new_port'     : new_port,
+            'timeout'      : HOP_RULE_TIMEOUT,
+            'time'         : time.strftime("%H:%M:%S"),
+            'dpid'         : datapath.id
         }
         self.active_mutations.append(record)
         with _state_lock:
             _shared_state['mutations'].append(record)
 
-        msg = f"[MUTATION] Port hop -- port {target_port} blocked for {HOP_RULE_TIMEOUT}s | new port: {new_port}"
+        msg = (f"[MUTATION] Port hop -- traffic redirected from port "
+               f"{original_port} to port {new_port} for {HOP_RULE_TIMEOUT}s "
+               f"(auto-expires, both inbound and return rules installed)")
         self.logger.warning(msg)
         _log('MUTATION', msg)
 
+    # ------------------------------------------------------------------
+    #  MUTATION ii — FLOW RULE REWRITE (SOURCE BLOCK)
+    #
+    #  Installs a timed DROP rule for the top offending source IP.
+    #  Rule auto-expires after BLOCK_RULE_TIMEOUT seconds.
+    # ------------------------------------------------------------------
     def _block_source(self, datapath, src_ip_counts,
                       connection_tracker, trigger):
         if not src_ip_counts:
@@ -375,22 +366,29 @@ class MutationEngine:
 
         match = parser.OFPMatch(eth_type=0x0800, ipv4_src=offender_ip)
         mod = parser.OFPFlowMod(
-            datapath=datapath, priority=10, match=match,
-            instructions=[], hard_timeout=BLOCK_RULE_TIMEOUT,
-            flags=ofproto.OFPFF_SEND_FLOW_REM
+            datapath     = datapath,
+            priority     = 10,
+            match        = match,
+            instructions = [],
+            hard_timeout = BLOCK_RULE_TIMEOUT,
+            flags        = ofproto.OFPFF_SEND_FLOW_REM
         )
         datapath.send_msg(mod)
 
         record = {
-            'type': 'source_block', 'blocked_ip': offender_ip,
-            'trigger': trigger, 'timeout': BLOCK_RULE_TIMEOUT,
-            'time': time.strftime("%H:%M:%S"), 'dpid': datapath.id
+            'type'      : 'source_block',
+            'blocked_ip': offender_ip,
+            'trigger'   : trigger,
+            'timeout'   : BLOCK_RULE_TIMEOUT,
+            'time'      : time.strftime("%H:%M:%S"),
+            'dpid'      : datapath.id
         }
         self.active_mutations.append(record)
         with _state_lock:
             _shared_state['mutations'].append(record)
 
-        msg = f"[MUTATION] Source block -- {offender_ip} dropped for {BLOCK_RULE_TIMEOUT}s"
+        msg = (f"[MUTATION] Source block -- traffic from {offender_ip} "
+               f"dropped for {BLOCK_RULE_TIMEOUT}s (auto-expires)")
         self.logger.warning(msg)
         _log('MUTATION', msg)
 
@@ -436,7 +434,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
@@ -449,6 +447,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     'packets' : _shared_state['packet_counts'],
                 }
             self._send_json(data)
+
+        elif self.path.startswith('/api/history'):
+            window = '1h'
+            if '?window=' in self.path:
+                window = self.path.split('?window=')[1].split('&')[0]
+            with _state_lock:
+                history = list(_shared_state['history'])
+            filtered = filter_history(history, window)
+            self._send_json({'history': filtered, 'window': window,
+                             'count': len(filtered)})
 
         elif self.path == '/api/mutations':
             with _state_lock:
@@ -469,29 +477,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json({'lines': lines, 'total': total})
 
         elif self.path == '/' or self.path == '/index.html':
-            self._send_file('/home/mininet/FYP/dashboard.html', 'text/html')
+            self._send_file(
+                os.path.join(SCRIPT_DIR, 'dashboard.html'), 'text/html')
 
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def do_POST(self):
-        if self.path.startswith('/api/test/'):
-            parts    = self.path.split('/')
-            raw      = parts[-1]
-            test_num = raw.split('?')[0]
-            target   = '10.0.0.4'
-            if 'target=' in self.path:
-                target = self.path.split('target=')[1].split('&')[0]
-
-            t = threading.Thread(
-                target=run_attack,
-                args=(test_num, target),
-                daemon=True
-            )
-            t.start()
-            self._send_json({'status': 'running', 'test': test_num,
-                             'target': target})
         else:
             self.send_response(404)
             self.end_headers()
@@ -523,6 +511,14 @@ class ShapeShiftingController(app_manager.RyuApp):
 
         self.detection_engine = DetectionEngine(self.logger)
         self.mutation_engine  = MutationEngine(self.logger)
+
+        loaded = load_history()
+        with _state_lock:
+            _shared_state['history'] = loaded
+
+        msg = f"[HISTORY] Loaded {len(loaded)} cycles from {HISTORY_FILE}"
+        self.logger.info(msg)
+        _log('INFO', msg)
 
         self.monitor_thread   = hub.spawn(self._monitor_loop)
         self.detection_thread = hub.spawn(self._detection_loop)
@@ -624,7 +620,8 @@ class ShapeShiftingController(app_manager.RyuApp):
     def flow_stats_reply_handler(self, ev):
         flows  = ev.msg.body
         active = [f for f in flows if f.priority == 1]
-        msg    = f"[STATS] Switch {ev.msg.datapath.id} -- {len(active)} active non-TCP flows"
+        msg    = (f"[STATS] Switch {ev.msg.datapath.id} -- "
+                  f"{len(active)} active non-TCP flows")
         self.logger.info(msg)
         _log('INFO', msg)
 
@@ -649,11 +646,20 @@ class ShapeShiftingController(app_manager.RyuApp):
             with _state_lock:
                 _shared_state['latest_result'] = result
                 _shared_state['history'].append(result)
-                if len(_shared_state['history']) > 20:
-                    _shared_state['history'].pop(0)
+                cutoff = time.time() - (7 * 24 * 3600)
+                _shared_state['history'] = [
+                    r for r in _shared_state['history']
+                    if r.get('unix_ts', 0) >= cutoff
+                ]
+                snapshot = list(_shared_state['history'])
+
+            threading.Thread(
+                target=save_history, args=(snapshot,), daemon=True
+            ).start()
 
             if result['overall_state'] == MALICIOUS:
-                msg = "[DETECTION] *** MALICIOUS ACTIVITY DETECTED *** -- activating mutation engine"
+                msg = ("[DETECTION] *** MALICIOUS ACTIVITY DETECTED *** "
+                       "-- activating mutation engine")
                 self.logger.warning(msg)
                 _log('WARNING', msg)
                 self.mutation_engine.respond(

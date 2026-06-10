@@ -27,10 +27,8 @@
   .tab-bar{display:flex;border-bottom:1px solid var(--border);background:rgba(13,21,32,0.9);padding:0 24px;}
   .tab{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:10px 18px;cursor:pointer;
     color:var(--dim);border-bottom:2px solid transparent;transition:all 0.2s;text-transform:uppercase;user-select:none;}
-  .tab:hover{color:var(--text);}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  .tab-content{display:none;}
-  .tab-content.active{display:block;}
+  .tab:hover{color:var(--text);} .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab-content{display:none;} .tab-content.active{display:block;}
 
   .grid{padding:18px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:1400px;margin:0 auto;}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:16px;position:relative;overflow:hidden;}
@@ -51,8 +49,16 @@
   .counter-label{color:var(--dim);font-size:13px;}
   .counter-value{font-family:'Share Tech Mono',monospace;font-size:17px;color:var(--accent);}
 
-  /* SVG CHART */
-  #history-svg-wrap{position:relative;width:100%;}
+  /* CHART */
+  .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .chart-header h2{margin-bottom:0;}
+  .timeline-btns{display:flex;gap:6px;}
+  .tl-btn{font-family:'Share Tech Mono',monospace;font-size:10px;padding:3px 10px;border-radius:2px;
+    cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);
+    letter-spacing:1px;transition:all 0.2s;}
+  .tl-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .tl-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,170,255,0.08);}
+  #chart-info{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-top:4px;}
   #history-svg{width:100%;height:120px;overflow:visible;}
   .chart-legend{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;}
   .legend-item{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);}
@@ -61,7 +67,8 @@
   #mutation-log{max-height:160px;overflow-y:auto;font-family:'Share Tech Mono',monospace;font-size:11px;}
   #mutation-log::-webkit-scrollbar{width:3px;}
   #mutation-log::-webkit-scrollbar-thumb{background:var(--border);}
-  .mutation-entry{padding:6px;border-left:2px solid var(--malicious);background:rgba(255,45,85,0.05);margin-bottom:5px;border-radius:0 3px 3px 0;animation:si 0.3s ease;}
+  .mutation-entry{padding:6px;border-left:2px solid var(--malicious);background:rgba(255,45,85,0.05);
+    margin-bottom:5px;border-radius:0 3px 3px 0;animation:si 0.3s ease;}
   @keyframes si{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
   .mutation-time{color:var(--dim);font-size:10px;}
   .mutation-type{color:var(--malicious);font-weight:700;font-size:11px;}
@@ -78,35 +85,40 @@
   #last-updated{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);text-align:right;padding:5px 24px;}
 
   /* ATTACKS TAB */
-  .attacks-layout{padding:18px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:1000px;margin:0 auto;}
-  .attack-section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:16px;position:relative;overflow:hidden;}
-  .attack-section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-  .attack-section.s-normal::before   {background:linear-gradient(90deg,var(--normal),transparent);}
-  .attack-section.s-suspicious::before{background:linear-gradient(90deg,var(--suspicious),transparent);}
-  .attack-section.s-malicious::before {background:linear-gradient(90deg,var(--malicious),transparent);}
-  .attack-section h2{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
-  .attack-section.s-normal h2    {color:var(--normal);}
-  .attack-section.s-suspicious h2{color:var(--suspicious);}
-  .attack-section.s-malicious h2 {color:var(--malicious);}
-  .attack-btn{display:block;width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);
-    color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
-    padding:10px 12px;border-radius:3px;cursor:pointer;text-align:left;transition:all 0.2s;margin-bottom:8px;}
-  .attack-btn:last-child{margin-bottom:0;}
-  .attack-btn .btn-label{font-size:9px;color:var(--dim);display:block;margin-bottom:2px;letter-spacing:1px;}
-  .attack-btn .btn-desc{font-size:12px;}
-  .attack-btn:hover{transform:translateX(3px);}
-  .attack-btn.s-normal:hover    {border-color:var(--normal);    color:var(--normal);    background:rgba(0,229,160,0.05);}
-  .attack-btn.s-suspicious:hover{border-color:var(--suspicious);color:var(--suspicious);background:rgba(245,166,35,0.05);}
-  .attack-btn.s-malicious:hover {border-color:var(--malicious); color:var(--malicious); background:rgba(255,45,85,0.05);}
-  .attack-btn:active{transform:scale(0.98);}
-  .attack-btn.running{opacity:0.4;pointer-events:none;}
-  .target-row{display:flex;align-items:center;gap:8px;padding:10px 0;grid-column:1/-1;}
-  .target-label{font-size:12px;color:var(--dim);white-space:nowrap;font-family:'Share Tech Mono',monospace;}
-  .target-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:3px;
-    color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:6px 10px;outline:none;}
-  .target-input:focus{border-color:var(--accent);}
-  .attack-note{grid-column:1/-1;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);
-    background:rgba(0,170,255,0.05);border:1px solid rgba(0,170,255,0.15);border-radius:3px;padding:10px 12px;line-height:1.7;}
+  .attacks-layout{padding:18px 24px;max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+  .attack-note{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);
+    background:rgba(0,170,255,0.05);border:1px solid rgba(0,170,255,0.15);border-radius:3px;
+    padding:12px 14px;line-height:1.8;}
+  .attack-note strong{color:var(--accent);}
+  .cmd-section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;position:relative;overflow:hidden;}
+  .cmd-section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .cmd-section.s-normal::before    {background:linear-gradient(90deg,var(--normal),transparent);}
+  .cmd-section.s-suspicious::before{background:linear-gradient(90deg,var(--suspicious),transparent);}
+  .cmd-section.s-malicious::before {background:linear-gradient(90deg,var(--malicious),transparent);}
+  .cmd-section h2{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}
+  .cmd-section.s-normal h2    {color:var(--normal);}
+  .cmd-section.s-suspicious h2{color:var(--suspicious);}
+  .cmd-section.s-malicious h2 {color:var(--malicious);}
+  .cmd-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(26,45,66,0.5);}
+  .cmd-row:last-child{border:none;padding-bottom:0;}
+  .cmd-num{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);min-width:18px;margin-top:2px;}
+  .cmd-info{flex:1;}
+  .cmd-label{font-size:12px;color:var(--text);margin-bottom:4px;font-weight:600;}
+  .cmd-desc{font-size:11px;color:var(--dim);margin-bottom:6px;}
+  .cmd-code{font-family:'Share Tech Mono',monospace;font-size:11px;background:rgba(0,0,0,0.4);
+    border:1px solid var(--border);border-radius:2px;padding:6px 60px 6px 8px;color:var(--accent);
+    cursor:pointer;position:relative;transition:border-color 0.2s;word-break:break-all;display:block;}
+  .cmd-code:hover{border-color:var(--accent);}
+  .cmd-copy{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    font-size:9px;color:var(--dim);letter-spacing:1px;white-space:nowrap;}
+  .cmd-code.copied{border-color:var(--normal) !important;color:var(--normal);}
+  .cmd-code.copied .cmd-copy{color:var(--normal);}
+  .host-selector{display:flex;gap:8px;align-items:center;}
+  .host-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);}
+  .host-btn{font-family:'Share Tech Mono',monospace;font-size:11px;padding:4px 12px;border-radius:2px;
+    cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);
+    letter-spacing:1px;transition:all 0.2s;}
+  .host-btn:hover,.host-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,170,255,0.05);}
 
   /* LOG TAB */
   .log-wrap{padding:16px 24px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:10px;}
@@ -116,8 +128,7 @@
   .log-filter-btn:hover,.log-filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,170,255,0.05);}
   .log-filter-btn.f-WARNING.active {border-color:var(--suspicious);color:var(--suspicious);background:rgba(245,166,35,0.05);}
   .log-filter-btn.f-MUTATION.active{border-color:var(--malicious); color:var(--malicious); background:rgba(255,45,85,0.05);}
-  .log-filter-btn.f-ATTACK.active  {border-color:var(--purple);    color:var(--purple);    background:rgba(167,139,250,0.05);}
-  .log-filter-btn.f-DETECTION.active{border-color:var(--accent);   color:var(--accent);    background:rgba(0,170,255,0.05);}
+  .log-filter-btn.f-DETECTION.active{border-color:var(--accent);color:var(--accent);background:rgba(0,170,255,0.05);}
   .log-auto{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim);cursor:pointer;margin-left:auto;}
   .log-auto input{accent-color:var(--accent);}
   #live-log{background:#050810;border:1px solid var(--border);border-radius:4px;padding:12px;
@@ -133,7 +144,6 @@
   .level-WARNING  {color:var(--suspicious);}
   .level-DETECTION{color:var(--accent);}
   .level-MUTATION {color:var(--malicious);}
-  .level-ATTACK   {color:var(--purple);}
 </style>
 </head>
 <body>
@@ -148,11 +158,11 @@
 
 <div class="tab-bar">
   <div class="tab active" onclick="switchTab('dashboard',this)">// Dashboard</div>
-  <div class="tab"        onclick="switchTab('attacks',this)">// Attacks</div>
+  <div class="tab"        onclick="switchTab('attacks',this)">// Attack Commands</div>
   <div class="tab"        onclick="switchTab('livelog',this)">// Live Log</div>
 </div>
 
-<!-- DASHBOARD TAB -->
+<!-- ══ DASHBOARD TAB ══ -->
 <div id="tab-dashboard" class="tab-content active">
 <div class="grid">
 
@@ -194,48 +204,47 @@
     <div class="counter-row"><span class="counter-label">Other</span><span class="counter-value" id="pkt-other">0</span></div>
   </div>
 
-  <!-- SVG Line Chart -->
+  <!-- Chart with timeline selector -->
   <div class="panel span-3">
-    <h2>// Detection History — Metric Values Over Time (last 20 cycles)</h2>
-    <div id="history-svg-wrap">
-      <svg id="history-svg" viewBox="0 0 800 120" preserveAspectRatio="none">
-        <defs>
-          <clipPath id="chartClip"><rect x="40" y="0" width="760" height="100"/></clipPath>
-        </defs>
-        <!-- Y axis labels -->
-        <text x="36" y="8"   text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">HIGH</text>
-        <text x="36" y="54"  text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">MED</text>
-        <text x="36" y="100" text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">LOW</text>
-        <!-- Grid lines -->
-        <line x1="40" y1="0"   x2="800" y2="0"   stroke="#1a2d42" stroke-width="0.5"/>
-        <line x1="40" y1="50"  x2="800" y2="50"  stroke="#1a2d42" stroke-width="0.5"/>
-        <line x1="40" y1="100" x2="800" y2="100" stroke="#1a2d42" stroke-width="0.5"/>
-        <!-- Threshold lines -->
-        <line x1="40" y1="25"  x2="800" y2="25"  stroke="#ff2d5540" stroke-width="0.8" stroke-dasharray="4,4"/>
-        <line x1="40" y1="42"  x2="800" y2="42"  stroke="#f5a62340" stroke-width="0.8" stroke-dasharray="4,4"/>
-        <!-- Lines drawn by JS -->
-        <g clip-path="url(#chartClip)">
-          <polyline id="line-entropy" fill="none" stroke="#0af"    stroke-width="1.5" stroke-linejoin="round" points=""/>
-          <polyline id="line-syn"     fill="none" stroke="#f5a623" stroke-width="1.5" stroke-linejoin="round" points=""/>
-          <polyline id="line-flow"    fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linejoin="round" points=""/>
-          <polyline id="line-brute"   fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" points=""/>
-          <!-- Dots -->
-          <g id="dots-entropy"></g>
-          <g id="dots-syn"></g>
-          <g id="dots-flow"></g>
-          <g id="dots-brute"></g>
-        </g>
-        <!-- State background bands (colored rectangles per cycle) -->
-        <g id="state-bands" clip-path="url(#chartClip)"></g>
-      </svg>
-      <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#0af"></div>Port Entropy (÷6)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>SYN Ratio (÷10)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#00e5a0"></div>Flow Velocity (÷30)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Brute Force (÷25)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ff2d5540;border:1px solid #ff2d55"></div>Malicious threshold</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f5a62340;border:1px solid #f5a623"></div>Suspicious threshold</div>
+    <div class="chart-header">
+      <h2>// Detection History</h2>
+      <div class="timeline-btns">
+        <button class="tl-btn active" onclick="setTimeline('1h',this)">1H</button>
+        <button class="tl-btn"        onclick="setTimeline('6h',this)">6H</button>
+        <button class="tl-btn"        onclick="setTimeline('24h',this)">24H</button>
+        <button class="tl-btn"        onclick="setTimeline('7d',this)">7D</button>
       </div>
+    </div>
+    <div id="chart-info" style="margin-bottom:8px;">Loading...</div>
+    <svg id="history-svg" viewBox="0 0 800 120" preserveAspectRatio="none">
+      <defs><clipPath id="chartClip"><rect x="40" y="0" width="760" height="100"/></clipPath></defs>
+      <text x="36" y="8"   text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">HIGH</text>
+      <text x="36" y="54"  text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">MED</text>
+      <text x="36" y="100" text-anchor="end" font-family="Share Tech Mono" font-size="8" fill="#4a6080">LOW</text>
+      <line x1="40" y1="0"   x2="800" y2="0"   stroke="#1a2d42" stroke-width="0.5"/>
+      <line x1="40" y1="50"  x2="800" y2="50"  stroke="#1a2d42" stroke-width="0.5"/>
+      <line x1="40" y1="100" x2="800" y2="100" stroke="#1a2d42" stroke-width="0.5"/>
+      <line x1="40" y1="25"  x2="800" y2="25"  stroke="#ff2d5540" stroke-width="0.8" stroke-dasharray="4,4"/>
+      <line x1="40" y1="42"  x2="800" y2="42"  stroke="#f5a62340" stroke-width="0.8" stroke-dasharray="4,4"/>
+      <g clip-path="url(#chartClip)">
+        <g id="state-bands"></g>
+        <polyline id="line-entropy" fill="none" stroke="#0af"    stroke-width="1.5" stroke-linejoin="round" points=""/>
+        <polyline id="line-syn"     fill="none" stroke="#f5a623" stroke-width="1.5" stroke-linejoin="round" points=""/>
+        <polyline id="line-flow"    fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linejoin="round" points=""/>
+        <polyline id="line-brute"   fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" points=""/>
+        <g id="dots-entropy"></g><g id="dots-syn"></g>
+        <g id="dots-flow"></g><g id="dots-brute"></g>
+      </g>
+      <!-- X axis time labels -->
+      <g id="x-labels"></g>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#0af"></div>Port Entropy (÷6)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>SYN Ratio (÷10)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00e5a0"></div>Flow Velocity (÷30)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Brute Force (÷25)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff2d5540;border:1px solid #ff2d55"></div>Malicious threshold</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a62340;border:1px solid #f5a623"></div>Suspicious threshold</div>
     </div>
   </div>
 
@@ -243,17 +252,14 @@
     <h2>// Mutation Log</h2>
     <div id="mutation-log"><div class="no-data">No mutations yet.</div></div>
   </div>
-
   <div class="panel">
     <h2>// Top Destination Ports</h2>
     <div id="top-ports"><div class="no-data">No data yet.</div></div>
   </div>
-
   <div class="panel">
     <h2>// Top Source IPs</h2>
     <div id="top-ips"><div class="no-data">No data yet.</div></div>
   </div>
-
   <div class="panel">
     <h2>// Last Trigger</h2>
     <div id="trigger-info" class="no-data">No active threat.</div>
@@ -263,86 +269,154 @@
 <div id="last-updated">Last updated: --</div>
 </div>
 
-<!-- ATTACKS TAB -->
+<!-- ══ ATTACKS TAB ══ -->
 <div id="tab-attacks" class="tab-content">
 <div class="attacks-layout">
-  <div class="target-row">
-    <span class="target-label">TARGET IP :</span>
-    <input class="target-input" id="target-ip" value="10.0.0.4" maxlength="15">
-  </div>
+
   <div class="attack-note">
-    Select an attack below. Results appear in the <strong style="color:var(--accent)">Live Log</strong> tab automatically.
-    Detection cycles run every 10 seconds — state changes appear shortly after the attack completes.
+    Run attacks from the <strong>Mininet CLI</strong>. Select a source host, click a command to copy it,
+    then paste it into your Mininet terminal and select the test number when the menu appears.
+    Detection results appear in the Live Log tab within 10 seconds of the attack completing.
   </div>
 
-  <div class="attack-section s-normal" style="grid-column:1/-1;">
+  <div class="host-selector">
+    <span class="host-label">SOURCE HOST :</span>
+    <button class="host-btn active" onclick="setHost('h1',this)">h1 — 10.0.0.1</button>
+    <button class="host-btn"        onclick="setHost('h2',this)">h2 — 10.0.0.2</button>
+    <button class="host-btn"        onclick="setHost('h3',this)">h3 — 10.0.0.3</button>
+  </div>
+
+  <div class="cmd-section s-normal">
     <h2>// Baseline</h2>
-    <button class="attack-btn s-normal" onclick="runTest(0)">
-      <span class="btn-label">NORMAL TRAFFIC</span>
-      <span class="btn-desc">10 SYN + 8 ACK to common ports — expected: NORMAL</span>
-    </button>
+    <div class="cmd-row">
+      <span class="cmd-num">0</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Normal baseline traffic</div>
+        <div class="cmd-desc">10 SYN + 8 ACK to common ports. All metrics should stay NORMAL.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="attack-section s-suspicious">
-    <h2>// Port Entropy</h2>
-    <button class="attack-btn s-suspicious" onclick="runTest(1)">
-      <span class="btn-label">SUSPICIOUS — 20 ports</span>
-      <span class="btn-desc">Ports 1–20 scan. Entropy &gt; 3.0 bits.</span>
-    </button>
-    <button class="attack-btn s-malicious" onclick="runTest(2)">
-      <span class="btn-label">MALICIOUS — 100 ports</span>
-      <span class="btn-desc">Ports 1–100 scan. Entropy &gt; 4.5 bits → port hop.</span>
-    </button>
+  <div class="cmd-section s-suspicious">
+    <h2>// Port Entropy (Port Scan Detection)</h2>
+    <div class="cmd-row">
+      <span class="cmd-num">1</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Entropy SUSPICIOUS — scan 20 ports</div>
+        <div class="cmd-desc">Ports 1–20. Entropy rises above 3.0 bits. Expected: SUSPICIOUS.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
+    <div class="cmd-row">
+      <span class="cmd-num">2</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Entropy MALICIOUS — scan 100 ports</div>
+        <div class="cmd-desc">Ports 1–100. Entropy exceeds 4.5 bits. Expected: MALICIOUS → port hop.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="attack-section s-suspicious">
-    <h2>// SYN Flood</h2>
-    <button class="attack-btn s-suspicious" onclick="runTest(3)">
-      <span class="btn-label">SUSPICIOUS — 30 SYN / 5 ACK</span>
-      <span class="btn-desc">SYN/ACK ratio = 6.0 &gt; threshold 3.0.</span>
-    </button>
-    <button class="attack-btn s-malicious" onclick="runTest(4)">
-      <span class="btn-label">MALICIOUS — 100 SYN / 0 ACK</span>
-      <span class="btn-desc">SYN/ACK ratio = ∞ → source block.</span>
-    </button>
+  <div class="cmd-section s-suspicious">
+    <h2>// SYN/ACK Ratio (SYN Flood Detection)</h2>
+    <div class="cmd-row">
+      <span class="cmd-num">3</span>
+      <div class="cmd-info">
+        <div class="cmd-label">SYN flood SUSPICIOUS — 30 SYN / 5 ACK</div>
+        <div class="cmd-desc">SYN/ACK ratio = 6.0, above threshold 3.0. Expected: SUSPICIOUS.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
+    <div class="cmd-row">
+      <span class="cmd-num">4</span>
+      <div class="cmd-info">
+        <div class="cmd-label">SYN flood MALICIOUS — 100 SYN / 0 ACK</div>
+        <div class="cmd-desc">SYN/ACK ratio = infinity. Expected: MALICIOUS → source block.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="attack-section s-suspicious">
-    <h2>// Flow Velocity</h2>
-    <button class="attack-btn s-suspicious" onclick="runTest(5)">
-      <span class="btn-label">SUSPICIOUS — 20 connections</span>
-      <span class="btn-desc">20 SYNs to random ports &gt; threshold 15.</span>
-    </button>
-    <button class="attack-btn s-malicious" onclick="runTest(6)">
-      <span class="btn-label">MALICIOUS — 80 connections</span>
-      <span class="btn-desc">80 rapid SYNs → source block.</span>
-    </button>
+  <div class="cmd-section s-suspicious">
+    <h2>// Flow Velocity (Reconnaissance Detection)</h2>
+    <div class="cmd-row">
+      <span class="cmd-num">5</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Flow velocity SUSPICIOUS — 20 connections</div>
+        <div class="cmd-desc">20 SYNs to random ports, above threshold 15. Expected: SUSPICIOUS.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
+    <div class="cmd-row">
+      <span class="cmd-num">6</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Flow velocity MALICIOUS — 80 connections</div>
+        <div class="cmd-desc">80 rapid SYNs simulating reconnaissance. Expected: MALICIOUS → source block.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="attack-section s-suspicious">
-    <h2>// Brute Force</h2>
-    <button class="attack-btn s-suspicious" onclick="runTest(7)">
-      <span class="btn-label">SUSPICIOUS — 20 SSH attempts</span>
-      <span class="btn-desc">20 SYNs to port 22 &gt; threshold 10.</span>
-    </button>
-    <button class="attack-btn s-malicious" onclick="runTest(8)">
-      <span class="btn-label">MALICIOUS — 80 SSH attempts</span>
-      <span class="btn-desc">80 rapid SYNs to port 22 → source block.</span>
-    </button>
+  <div class="cmd-section s-suspicious">
+    <h2>// Brute Force (Credential Attack Detection)</h2>
+    <div class="cmd-row">
+      <span class="cmd-num">7</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Brute force SUSPICIOUS — 20 SSH attempts</div>
+        <div class="cmd-desc">20 SYNs to port 22, above threshold 10. Expected: SUSPICIOUS.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
+    <div class="cmd-row">
+      <span class="cmd-num">8</span>
+      <div class="cmd-info">
+        <div class="cmd-label">Brute force MALICIOUS — 80 SSH attempts</div>
+        <div class="cmd-desc">80 rapid SYNs to port 22, above threshold 25. Expected: MALICIOUS → source block.</div>
+        <div class="cmd-code" onclick="copyCmd(this)">
+          <span class="cmd-text">h1 python3 test_suite.py 10.0.0.4</span>
+          <span class="cmd-copy">CLICK TO COPY</span>
+        </div>
+      </div>
+    </div>
   </div>
+
 </div>
 </div>
 
-<!-- LOG TAB -->
+<!-- ══ LOG TAB ══ -->
 <div id="tab-livelog" class="tab-content">
 <div class="log-wrap">
   <div class="log-controls">
-    <button class="log-filter-btn active"          onclick="setFilter('ALL',this)">ALL</button>
-    <button class="log-filter-btn f-DETECTION"     onclick="setFilter('DETECTION',this)">DETECTION</button>
-    <button class="log-filter-btn f-MUTATION"      onclick="setFilter('MUTATION',this)">MUTATION</button>
-    <button class="log-filter-btn f-ATTACK"        onclick="setFilter('ATTACK',this)">ATTACK</button>
-    <button class="log-filter-btn f-WARNING"       onclick="setFilter('WARNING',this)">WARNING</button>
-    <button class="log-filter-btn"                 onclick="clearLog()">CLEAR</button>
+    <button class="log-filter-btn active"       onclick="setFilter('ALL',this)">ALL</button>
+    <button class="log-filter-btn f-DETECTION"  onclick="setFilter('DETECTION',this)">DETECTION</button>
+    <button class="log-filter-btn f-MUTATION"   onclick="setFilter('MUTATION',this)">MUTATION</button>
+    <button class="log-filter-btn f-WARNING"    onclick="setFilter('WARNING',this)">WARNING</button>
+    <button class="log-filter-btn"              onclick="clearLog()">CLEAR</button>
     <label class="log-auto"><input type="checkbox" id="auto-scroll" checked> Auto-scroll</label>
   </div>
   <div id="live-log"><span style="color:var(--dim);font-size:12px;font-family:'Share Tech Mono',monospace;">Waiting for controller output...</span></div>
@@ -353,14 +427,66 @@
 const API='';
 const SC={NORMAL:'#00e5a0',SUSPICIOUS:'#f5a623',MALICIOUS:'#ff2d55'};
 let logIndex=0,logFilter='ALL',logLines=[];
+let selectedHost='h1';
+let currentWindow='1h';
+let chartData=[];
 
-function sc(s){return SC[s]||'#4a6080';}
+// ── CLIPBOARD (works on plain HTTP) ──
+function copyToClipboard(text){
+  // Modern API (HTTPS / localhost)
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback for plain HTTP (VM IP access)
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
+function copyCmd(el){
+  const text=el.querySelector('.cmd-text').textContent;
+  copyToClipboard(text).then(()=>{
+    el.classList.add('copied');
+    const copySpan=el.querySelector('.cmd-copy');
+    const orig=copySpan.textContent;
+    copySpan.textContent='COPIED!';
+    setTimeout(()=>{
+      el.classList.remove('copied');
+      copySpan.textContent=orig;
+    },1800);
+  });
+}
+
+// ── HOST SELECTOR ──
+const HOST_CMDS={
+  'h1':'h1 python3 test_suite.py 10.0.0.4',
+  'h2':'h2 python3 test_suite.py 10.0.0.4',
+  'h3':'h3 python3 test_suite.py 10.0.0.4',
+};
+
+function setHost(host,el){
+  selectedHost=host;
+  document.querySelectorAll('.host-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.cmd-text').forEach(span=>{
+    span.textContent=HOST_CMDS[host];
+  });
+}
+
+// ── TABS ──
 function switchTab(name,el){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   el.classList.add('active');
 }
+
+// ── LOG ──
 function setFilter(f,el){
   logFilter=f;
   document.querySelectorAll('.log-filter-btn').forEach(b=>b.classList.remove('active'));
@@ -374,7 +500,10 @@ function renderLog(){
   const el=document.getElementById('live-log');
   const auto=document.getElementById('auto-scroll').checked;
   const lines=logFilter==='ALL'?logLines:logLines.filter(l=>l.level===logFilter);
-  if(!lines.length){el.innerHTML='<span style="color:var(--dim);font-size:12px;font-family:\'Share Tech Mono\',monospace;">No entries'+(logFilter!=='ALL'?' for: '+logFilter:'')+'.</span>';return;}
+  if(!lines.length){
+    el.innerHTML='<span style="color:var(--dim);font-size:12px;font-family:\'Share Tech Mono\',monospace;">No entries'+(logFilter!=='ALL'?' for: '+logFilter:'')+'.</span>';
+    return;
+  }
   el.innerHTML=lines.map(l=>`<div class="log-line">
     <span class="log-ts">${l.time}</span>
     <span class="log-level level-${l.level}">[${l.level}]</span>
@@ -382,6 +511,9 @@ function renderLog(){
   </div>`).join('');
   if(auto) el.scrollTop=el.scrollHeight;
 }
+
+// ── METRICS ──
+function sc(s){return SC[s]||'#4a6080';}
 
 function setMetric(prefix,value,state,pct){
   document.getElementById(prefix+'-val').textContent=value;
@@ -397,57 +529,77 @@ function updateStatus(state){
   b.textContent=state;b.className='state-'+state;
 }
 
-// ── SVG LINE CHART ──
-function updateChart(history){
-  if(!history||!history.length) return;
-  const W=760, H=100, X0=40, N=20;
-  const pad=history.length<N?history.length:N;
-  const data=history.slice(-N);
-  const n=data.length;
-  if(n<1) return;
+// ── TIMELINE CHART ──
+function setTimeline(window,el){
+  currentWindow=window;
+  document.querySelectorAll('.tl-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  fetchHistory();
+}
 
-  // normalise each metric to 0-1 range
+function formatTime(unixTs,window){
+  const d=new Date(unixTs*1000);
+  if(window==='1h'||window==='6h') return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if(window==='24h') return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+
+function updateChart(data){
+  chartData=data;
+  const W=760,H=100,X0=40;
+  const n=data.length;
+
+  if(n===0){
+    document.getElementById('chart-info').textContent='No data for this time window.';
+    ['entropy','syn','flow','brute'].forEach(k=>{
+      document.getElementById('line-'+k).setAttribute('points','');
+      document.getElementById('dots-'+k).innerHTML='';
+    });
+    document.getElementById('state-bands').innerHTML='';
+    document.getElementById('x-labels').innerHTML='';
+    return;
+  }
+
+  const windowLabels={'1h':'Last 1 Hour','6h':'Last 6 Hours','24h':'Last 24 Hours','7d':'Last 7 Days'};
+  document.getElementById('chart-info').textContent=
+    `${windowLabels[currentWindow]} — ${n} detection cycles`;
+
   function pts(vals){
     return vals.map((v,i)=>{
-      const x=X0+(i/(Math.max(n-1,1)))*W;
+      const x=X0+(i/Math.max(n-1,1))*W;
       const y=H-(Math.min(v,1)*H);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
   }
 
-  const entropy = data.map(r=>Math.min(r.entropy_value/6,1));
-  const syn     = data.map(r=>Math.min(r.syn_ratio/10,1));
-  const flow    = data.map(r=>Math.min(r.flow_count/30,1));
-  const brute   = data.map(r=>{
-    const c=r.brute_detail?r.brute_detail.count:0;
-    return Math.min(c/25,1);
-  });
+  const entropy=data.map(r=>Math.min((r.entropy_value||0)/6,1));
+  const syn    =data.map(r=>Math.min((r.syn_ratio||0)/10,1));
+  const flow   =data.map(r=>Math.min((r.flow_count||0)/30,1));
+  const brute  =data.map(r=>{const c=r.brute_detail?r.brute_detail.count:0;return Math.min(c/25,1);});
 
-  document.getElementById('line-entropy').setAttribute('points', pts(entropy));
-  document.getElementById('line-syn').setAttribute('points',     pts(syn));
-  document.getElementById('line-flow').setAttribute('points',    pts(flow));
-  document.getElementById('line-brute').setAttribute('points',   pts(brute));
+  document.getElementById('line-entropy').setAttribute('points',pts(entropy));
+  document.getElementById('line-syn').setAttribute('points',pts(syn));
+  document.getElementById('line-flow').setAttribute('points',pts(flow));
+  document.getElementById('line-brute').setAttribute('points',pts(brute));
 
   // State background bands
-  const bands = document.getElementById('state-bands');
+  const bands=document.getElementById('state-bands');
   bands.innerHTML='';
-  const bw = W/Math.max(n,1);
+  const bw=W/Math.max(n,1);
   data.forEach((r,i)=>{
-    const x=X0+(i/Math.max(n-1,1))*W - bw/2;
+    const x=X0+(i/Math.max(n-1,1))*W-bw/2;
     const col=r.overall_state==='MALICIOUS'?'rgba(255,45,85,0.08)':
                r.overall_state==='SUSPICIOUS'?'rgba(245,166,35,0.06)':'transparent';
     if(col!=='transparent'){
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x',Math.max(X0,x).toFixed(1));
-      rect.setAttribute('y','0');
-      rect.setAttribute('width',bw.toFixed(1));
-      rect.setAttribute('height','100');
-      rect.setAttribute('fill',col);
+      rect.setAttribute('y','0');rect.setAttribute('width',bw.toFixed(1));
+      rect.setAttribute('height','100');rect.setAttribute('fill',col);
       bands.appendChild(rect);
     }
   });
 
-  // Dots on latest point
+  // Dots
   ['entropy','syn','flow','brute'].forEach((key,ki)=>{
     const vals=[entropy,syn,flow,brute][ki];
     const col=['#0af','#f5a623','#00e5a0','#a78bfa'][ki];
@@ -457,14 +609,31 @@ function updateChart(history){
       const x=X0+(i/Math.max(n-1,1))*W;
       const y=H-(v*H);
       const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',x.toFixed(1));
-      c.setAttribute('cy',y.toFixed(1));
-      c.setAttribute('r', i===n-1?'3':'1.5');
-      c.setAttribute('fill',col);
-      c.setAttribute('opacity', i===n-1?'1':'0.6');
+      c.setAttribute('cx',x.toFixed(1));c.setAttribute('cy',y.toFixed(1));
+      c.setAttribute('r',i===n-1?'3':'1.5');
+      c.setAttribute('fill',col);c.setAttribute('opacity',i===n-1?'1':'0.6');
       g.appendChild(c);
     });
   });
+
+  // X axis time labels (show ~5 labels)
+  const xLabels=document.getElementById('x-labels');
+  xLabels.innerHTML='';
+  const step=Math.max(1,Math.floor(n/5));
+  for(let i=0;i<n;i+=step){
+    const x=X0+(i/Math.max(n-1,1))*W;
+    const ts=data[i].unix_ts;
+    if(!ts) continue;
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',x.toFixed(1));
+    lbl.setAttribute('y','116');
+    lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('font-family','Share Tech Mono');
+    lbl.setAttribute('font-size','7');
+    lbl.setAttribute('fill','#4a6080');
+    lbl.textContent=formatTime(ts,currentWindow);
+    xLabels.appendChild(lbl);
+  }
 }
 
 function updateRankList(elId,items,maxVal){
@@ -497,6 +666,7 @@ function updateMutations(mutations){
   }).join('');
 }
 
+// ── API FETCHES ──
 async function fetchStatus(){
   try{
     const r=await fetch(API+'/api/status');
@@ -504,9 +674,9 @@ async function fetchStatus(){
     const latest=data.latest;
     if(latest){
       updateStatus(latest.overall_state);
-      setMetric('entropy',latest.entropy_value.toFixed(3)+' bits',latest.entropy_state,(latest.entropy_value/6)*100);
-      setMetric('syn',latest.syn_ratio.toFixed(2),latest.syn_state,(latest.syn_ratio/10)*100);
-      setMetric('flow',latest.flow_count+' SYNs',latest.flow_state,(latest.flow_count/40)*100);
+      setMetric('entropy',(latest.entropy_value||0).toFixed(3)+' bits',latest.entropy_state,((latest.entropy_value||0)/6)*100);
+      setMetric('syn',(latest.syn_ratio||0).toFixed(2),latest.syn_state,((latest.syn_ratio||0)/10)*100);
+      setMetric('flow',(latest.flow_count||0)+' SYNs',latest.flow_state,((latest.flow_count||0)/40)*100);
       const bc=latest.brute_detail?latest.brute_detail.count:0;
       setMetric('brute',bc,latest.brute_state,(bc/25)*100);
       const trigEl=document.getElementById('trigger-info');
@@ -519,7 +689,6 @@ async function fetchStatus(){
       if(latest.top_ports&&latest.top_ports.length) updateRankList('top-ports',latest.top_ports,latest.top_ports[0][1]);
       if(latest.top_ips&&latest.top_ips.length)     updateRankList('top-ips',latest.top_ips,latest.top_ips[0][1]);
     }
-    if(data.history) updateChart(data.history);
     const pkts=data.packets;
     if(pkts){
       document.getElementById('pkt-total').textContent=pkts.total;
@@ -530,6 +699,16 @@ async function fetchStatus(){
     document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();
   }catch(e){
     document.getElementById('last-updated').textContent='Connection error — is the controller running?';
+  }
+}
+
+async function fetchHistory(){
+  try{
+    const r=await fetch(API+`/api/history?window=${currentWindow}`);
+    const data=await r.json();
+    updateChart(data.history||[]);
+  }catch(e){
+    document.getElementById('chart-info').textContent='Could not load history.';
   }
 }
 
@@ -550,25 +729,15 @@ async function fetchLog(){
   }catch(e){}
 }
 
-async function runTest(n){
-  const target=document.getElementById('target-ip').value||'10.0.0.4';
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-livelog').classList.add('active');
-  document.querySelectorAll('.tab')[2].classList.add('active');
-  document.querySelectorAll('.attack-btn').forEach(b=>b.classList.add('running'));
-  setTimeout(()=>document.querySelectorAll('.attack-btn').forEach(b=>b.classList.remove('running')),8000);
-  try{await fetch(`${API}/api/test/${n}?target=${target}`,{method:'POST'});}
-  catch(e){alert('Could not reach controller API.');}
-}
-
 function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString();}
 
-fetchStatus();fetchMutations();fetchLog();
-setInterval(fetchStatus,5000);
+// ── INIT ──
+fetchStatus();fetchHistory();fetchMutations();fetchLog();
+setInterval(fetchStatus,  5000);
+setInterval(fetchHistory, 15000);  // chart refreshes less often since it covers longer windows
 setInterval(fetchMutations,5000);
-setInterval(fetchLog,2000);
-setInterval(updateClock,1000);
+setInterval(fetchLog,     2000);
+setInterval(updateClock,  1000);
 </script>
 </body>
 </html>
