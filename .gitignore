@@ -1,2 +1,3 @@
 ryu/
 __pycache__/
+*.swp
