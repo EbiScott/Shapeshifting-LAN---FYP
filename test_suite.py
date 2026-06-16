@@ -1,28 +1,32 @@
 """
 Shapeshifting LAN Defence - Interactive Test Suite
+With automatic test marking via shared marker file.
+
+The suite writes a marker to ~/FYP/pending_marker.txt before each test.
+The controller reads this file at the start of each detection cycle
+and attaches the label to the cycle in detection_history.json.
 
 Run from inside Mininet CLI:
     h1 python3 test_suite.py 10.0.0.4
     h2 python3 test_suite.py 10.0.0.4
     h3 python3 test_suite.py 10.0.0.4
-
-The target should normally be h4 (the server at 10.0.0.4).
-You can also target any other host IP.
 """
 
 from scapy.all import *
 import time
 import random
 import sys
+import os
 
-# ── TARGET ───────────────────────────────────────────
-target_ip = sys.argv[1] if len(sys.argv) > 1 else "10.0.0.4"
+target_ip   = sys.argv[1] if len(sys.argv) > 1 else "10.0.0.4"
+source_host = sys.argv[2] if len(sys.argv) > 2 else "h1"
 
-# ── MENU ─────────────────────────────────────────────
+MARKER_FILE = "/home/mininet/FYP/pending_marker.txt"
+
 MENU = """
 ===========================================================
        SHAPESHIFTING LAN -- INTERACTIVE TEST SUITE
-       Target: {target}
+       Source: {source}   Target: {target}
 ===========================================================
   NORMAL TRAFFIC
     0  --  Send normal baseline traffic
@@ -47,144 +51,107 @@ MENU = """
 ===========================================================
 """
 
-# ── TEST FUNCTIONS ────────────────────────────────────
+LABELS = {
+    '0': 'baseline',
+    '1': 'entropy_sus',
+    '2': 'entropy_mal',
+    '3': 'syn_sus',
+    '4': 'syn_mal',
+    '5': 'flow_sus',
+    '6': 'flow_mal',
+    '7': 'brute_sus',
+    '8': 'brute_mal',
+}
+
+
+def write_marker(test_num):
+    """Write marker file so controller stamps the next detection cycle."""
+    label = f"{source_host}_h4_{LABELS.get(test_num, test_num)}"
+    try:
+        with open(MARKER_FILE, 'w') as f:
+            f.write(label)
+        print(f"[MARKER] Test labelled: {label}")
+    except Exception as e:
+        print(f"[MARKER] Could not write marker: {e}")
+
 
 def normal_traffic():
-    """
-    Sends a realistic mix of HTTP, HTTPS, SSH, and DNS packets
-    with balanced SYN and ACK flags -- represents a healthy baseline.
-    Expected controller response: NORMAL
-    """
     print("\n[NORMAL] Sending legitimate baseline traffic...")
     normal_ports = [80, 443, 22, 53]
-
     for i in range(10):
         port = random.choice(normal_ports)
         send(IP(dst=target_ip)/TCP(dport=port, flags="S"), verbose=0)
         time.sleep(0.3)
-
     for i in range(8):
         send(IP(dst=target_ip)/TCP(dport=80, flags="A"), verbose=0)
-        time.sleep(0.1)
-
-    print("[NORMAL] Done -- wait for next detection cycle to confirm NORMAL state.")
+    print("[NORMAL] Done.")
 
 
 def test_entropy_suspicious():
-    """
-    Scans 20 sequential ports with SYN packets.
-    Spreads traffic across enough ports to raise entropy above
-    the SUSPICIOUS threshold (3.0 bits) but below MALICIOUS (4.5 bits).
-    Expected controller response: SUSPICIOUS -- port_entropy
-    """
-    print("\n[ENTROPY - SUSPICIOUS] Scanning ports 1-20 on {}...".format(target_ip))
+    print(f"\n[ENTROPY - SUSPICIOUS] Scanning ports 1-20 on {target_ip}...")
     for port in range(1, 21):
         send(IP(dst=target_ip)/TCP(dport=port, flags="S"), verbose=0)
         time.sleep(0.05)
-    print("[ENTROPY - SUSPICIOUS] Done -- watch controller for SUSPICIOUS alert.")
+    print("[ENTROPY - SUSPICIOUS] Done.")
 
 
 def test_entropy_malicious():
-    """
-    Scans 100 sequential ports with SYN packets.
-    Wide port distribution pushes entropy well above the MALICIOUS
-    threshold (4.5 bits), simulating a full port scan.
-    Expected controller response: MALICIOUS -- port_entropy -> port hop mutation
-    """
-    print("\n[ENTROPY - MALICIOUS] Scanning ports 1-100 on {}...".format(target_ip))
+    print(f"\n[ENTROPY - MALICIOUS] Scanning ports 1-100 on {target_ip}...")
     for port in range(1, 101):
         send(IP(dst=target_ip)/TCP(dport=port, flags="S"), verbose=0)
         time.sleep(0.01)
-    print("[ENTROPY - MALICIOUS] Done -- watch controller for MALICIOUS alert and port hop.")
+    print("[ENTROPY - MALICIOUS] Done.")
 
 
 def test_syn_suspicious():
-    """
-    Sends 30 SYN packets and only 5 ACK packets to port 80.
-    SYN/ACK ratio = 6.0, above SUSPICIOUS threshold (3.0)
-    but below MALICIOUS (7.0).
-    Expected controller response: SUSPICIOUS -- syn_ratio
-    """
-    print("\n[SYN FLOOD - SUSPICIOUS] 30 SYN + 5 ACK to port 80 on {}...".format(target_ip))
+    print(f"\n[SYN FLOOD - SUSPICIOUS] 30 SYN + 5 ACK to port 80 on {target_ip}...")
     for i in range(30):
         send(IP(dst=target_ip)/TCP(dport=80, flags="S"), verbose=0)
     for i in range(5):
         send(IP(dst=target_ip)/TCP(dport=80, flags="A"), verbose=0)
-    print("[SYN FLOOD - SUSPICIOUS] Done -- watch controller for SUSPICIOUS alert.")
+    print("[SYN FLOOD - SUSPICIOUS] Done.")
 
 
 def test_syn_malicious():
-    """
-    Sends 100 SYN packets with zero ACK packets to port 80.
-    SYN/ACK ratio = infinity (no ACKs), far above MALICIOUS threshold (7.0).
-    Simulates a full SYN flood denial-of-service attack.
-    Expected controller response: MALICIOUS -- syn_ratio -> source block mutation
-    """
-    print("\n[SYN FLOOD - MALICIOUS] 100 SYN, 0 ACK to port 80 on {}...".format(target_ip))
+    print(f"\n[SYN FLOOD - MALICIOUS] 100 SYN, 0 ACK to port 80 on {target_ip}...")
     for i in range(100):
         send(IP(dst=target_ip)/TCP(dport=80, flags="S"), verbose=0)
-    print("[SYN FLOOD - MALICIOUS] Done -- watch controller for MALICIOUS alert and source block.")
+    print("[SYN FLOOD - MALICIOUS] Done.")
 
 
 def test_flow_suspicious():
-    """
-    Opens 20 connections to random high ports rapidly.
-    Generates enough new flows to cross the SUSPICIOUS flow velocity
-    threshold (20 flows/window).
-    Expected controller response: SUSPICIOUS -- flow_velocity
-    """
-    print("\n[FLOW VELOCITY - SUSPICIOUS] 20 connections to random ports on {}...".format(target_ip))
+    print(f"\n[FLOW VELOCITY - SUSPICIOUS] 20 connections to random ports on {target_ip}...")
     for i in range(20):
         port = random.randint(1024, 65535)
         send(IP(dst=target_ip)/TCP(dport=port, flags="S"), verbose=0)
         time.sleep(0.02)
-    print("[FLOW VELOCITY - SUSPICIOUS] Done -- watch controller for SUSPICIOUS alert.")
+    print("[FLOW VELOCITY - SUSPICIOUS] Done.")
 
 
 def test_flow_malicious():
-    """
-    Opens 80 connections to random high ports in rapid succession.
-    Simulates network-wide reconnaissance -- attacker mapping all
-    reachable services. Crosses MALICIOUS threshold (40 flows/window).
-    Expected controller response: MALICIOUS -- flow_velocity -> source block mutation
-    """
-    print("\n[FLOW VELOCITY - MALICIOUS] 80 rapid connections to random ports on {}...".format(target_ip))
+    print(f"\n[FLOW VELOCITY - MALICIOUS] 80 rapid connections to random ports on {target_ip}...")
     for i in range(80):
         port = random.randint(1024, 65535)
         send(IP(dst=target_ip)/TCP(dport=port, flags="S"), verbose=0)
         time.sleep(0.005)
-    print("[FLOW VELOCITY - MALICIOUS] Done -- watch controller for MALICIOUS alert.")
+    print("[FLOW VELOCITY - MALICIOUS] Done.")
 
 
 def test_brute_suspicious():
-    """
-    Sends 20 repeated SYN packets to port 22 (SSH) from same source.
-    Simulates a slow brute force attempt -- enough to cross the
-    SUSPICIOUS threshold (10 repeated connections) but not MALICIOUS (25).
-    Expected controller response: SUSPICIOUS -- brute_force
-    """
-    print("\n[BRUTE FORCE - SUSPICIOUS] 20 repeated SYN to port 22 on {}...".format(target_ip))
+    print(f"\n[BRUTE FORCE - SUSPICIOUS] 20 repeated SYN to port 22 on {target_ip}...")
     for i in range(20):
         send(IP(dst=target_ip)/TCP(dport=22, flags="S"), verbose=0)
         time.sleep(0.1)
-    print("[BRUTE FORCE - SUSPICIOUS] Done -- watch controller for SUSPICIOUS alert.")
+    print("[BRUTE FORCE - SUSPICIOUS] Done.")
 
 
 def test_brute_malicious():
-    """
-    Sends 80 rapid SYN packets to port 22 (SSH) from same source.
-    Simulates an aggressive SSH brute force attack -- crosses the
-    MALICIOUS threshold (25 repeated connections).
-    Expected controller response: MALICIOUS -- brute_force -> source block mutation
-    """
-    print("\n[BRUTE FORCE - MALICIOUS] 80 rapid SYN to port 22 on {}...".format(target_ip))
+    print(f"\n[BRUTE FORCE - MALICIOUS] 80 rapid SYN to port 22 on {target_ip}...")
     for i in range(80):
         send(IP(dst=target_ip)/TCP(dport=22, flags="S"), verbose=0)
         time.sleep(0.01)
-    print("[BRUTE FORCE - MALICIOUS] Done -- watch controller for MALICIOUS alert and source block.")
+    print("[BRUTE FORCE - MALICIOUS] Done.")
 
-
-# ── DISPATCH TABLE ────────────────────────────────────
 
 TESTS = {
     '0': normal_traffic,
@@ -198,10 +165,8 @@ TESTS = {
     '8': test_brute_malicious,
 }
 
-# ── MAIN LOOP ─────────────────────────────────────────
-
 if __name__ == '__main__':
-    print(MENU.format(target=target_ip))
+    print(MENU.format(source=source_host, target=target_ip))
     print("NOTE: After each test, wait up to 10 seconds for the")
     print("      detection cycle to run and show results.\n")
 
@@ -216,6 +181,7 @@ if __name__ == '__main__':
             print("Exiting test suite.")
             break
         elif choice in TESTS:
+            write_marker(choice)
             TESTS[choice]()
             print("\n>>> Waiting for detection cycle (up to 10s)...")
             print(">>> Watch the controller terminal for results.")
