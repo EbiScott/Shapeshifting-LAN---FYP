@@ -34,7 +34,7 @@ h4 (10.0.0.4) ─┘
 
 The fastest way to run the system. No installation required.
 
-1. Download the VM image: **[Download OVA](#)** *(replace with your link)*
+1. Download the VM image: **[Download OVA](#)** *(upload soon use vagrant for now)*
 2. Import into VirtualBox: File → Import Appliance
 3. Start the VM and log in: `mininet / mininet`
 4. Follow the **Running the System** steps below.
