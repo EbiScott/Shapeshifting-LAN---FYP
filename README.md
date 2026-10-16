@@ -34,8 +34,8 @@ h4 (10.0.0.4) ─┘
 
 The fastest way to run the system. No installation required.
 
-1. Download the VM image: **[Download OVA](#)** *(upload soon use vagrant for now)*
-2. Import into VirtualBox: File → Import Appliance
+1. Download the VM image: **[Download OVA](https://drive.google.com/drive/folders/14So-ofIcF58c7mAaF6ECz5r2paKDWdEQ?usp=sharing)**
+2. Import into VirtualBox (or VMWare) : File → Import Appliance
 3. Start the VM and log in: `mininet / mininet`
 4. Follow the **Running the System** steps below.
 
@@ -120,4 +120,4 @@ mininet> h2 python3 test_suite.py 10.0.0.4 &
 
 ## Author
 
-Ebi Scott — Final Year Project, 2025/2026
+ Eworitse Egbejule — Final Year Project, 2025/2026
